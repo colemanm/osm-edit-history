@@ -25,8 +25,8 @@ class OsmEditHistory < Thor
     Dir.glob("#{options[:path]}/*.xml") do |file|
       xml = File.open(file).read
       change = parse_changesets(xml)
-      puts "Reading #{file}"
-      if !changeset_exists(change['osm_id'])
+      puts "Reading #{File.basename(file)}..."
+      if !changeset_exists(change['changeset_id'])
         insert_changeset(change.except("tags"))
         insert_tags(change)
         puts "Imported edits for changeset #{change['osm_id']}."
@@ -39,10 +39,9 @@ class OsmEditHistory < Thor
   def clean
     Dir.glob("#{options[:path]}/*.xml") do |file|
       xml = File.open(file).read
-      Nokogiri::XML::Reader(xml).each_with_index do |node, index|
-        if !['node', 'way', 'relation'].include? node.name
-
-        end
+      if !changeset_valid(xml)
+        File.delete(file)
+        puts "File #{File.basename(file)} deleted."
       end
     end
   end
@@ -58,7 +57,17 @@ class OsmEditHistory < Thor
     end
 
     def changeset_exists(id)
-      database["SELECT COUNT(1) AS count FROM changes WHERE osm_id = #{id}"].all.first[:count] > 0
+      database["SELECT COUNT(1) AS count FROM changes WHERE changeset_id = #{id}"].all.first[:count] > 0
+    end
+
+    def changeset_valid(xml)
+      Nokogiri::XML::Reader(xml).each_with_index do |node, index|
+        if node.name == 'osmChange' && node.self_closing?
+          return false
+        else
+          return true
+        end
+      end
     end
 
     def insert_changeset(changeset)
@@ -86,7 +95,7 @@ class OsmEditHistory < Thor
             current_record['uid'] = current_record['uid'].to_i
             current_record['created_at'] = Time.parse(current_record['timestamp']) if current_record['timestamp']
             current_record['username'] = current_record.delete('user')
-            %w(changeset lat lon visible timestamp).each { |key| current_record.delete(key) }
+            %w(changeset lat lon visible timestamp id).each { |key| current_record.delete(key) }
           end
         end
 
@@ -121,7 +130,7 @@ class OsmEditHistory < Thor
         CREATE TABLE changes
         (
           id serial NOT NULL,
-          osm_id integer NOT NULL,
+          osm_id bigint NOT NULL,
           type character varying(50),
           version integer NOT NULL,
           changeset_id integer NOT NULL,
