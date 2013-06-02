@@ -1,6 +1,6 @@
 # OSM Edit History Importer
 
-This is a command line tool for importing changeset data and edit history from [OsmChange](http://wiki.openstreetmap.org/wiki/OsmChange) documents. Changeset files downloaded from the [Changesets API](http://wiki.openstreetmap.org/wiki/API_v0.6#Changesets_2)[^terms] can be parsed and imported into a Postgres database for searching, manipulating, and visualizing.
+This is a command line tool for importing changeset data and edit history from [OsmChange](http://wiki.openstreetmap.org/wiki/OsmChange) documents. Changeset files downloaded from the [Changesets API](http://wiki.openstreetmap.org/wiki/API_v0.6#Changesets_2) can be parsed and imported into a Postgres database for searching, manipulating, and visualizing.
 
 This was built primarily for analyzing editing history from [Pushpin](http://pushpinosm.org/), but could be useful for other purposes.
 
@@ -37,4 +37,6 @@ Once you're all set up, run the import task and pass it your Postgres connection
 
 The tool creates two tables: `changes` and `tags`. The `tags` table contains a changeset ID for each tag for cross-referencing or joins.
 
-[^terms]: Keep in mind the API [usage policies](http://wiki.openstreetmap.org/wiki/API_usage_policy) for larger downloads.
+### Notes:
+
+* Keep in mind the API [usage policies](http://wiki.openstreetmap.org/wiki/API_usage_policy) for larger downloads.
