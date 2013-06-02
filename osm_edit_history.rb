@@ -29,7 +29,7 @@ class OsmEditHistory < Thor
       if !changeset_exists(change['changeset_id'])
         insert_changeset(change.except("tags"))
         insert_tags(change)
-        puts "Imported edits for changeset #{change['osm_id']}."
+        puts "Imported edits for changeset #{change['changeset_id']}."
       end
     end
   end
