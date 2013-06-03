@@ -46,6 +46,20 @@ class OsmEditHistory < Thor
     end
   end
 
+  desc "download", "Download changeset files from text list"
+  method_option :path, aliases: "-p", desc: "Path to store downloaded XML changeset files"
+  method_option :file, aliases: "-f", desc: "Text file of changeset IDs"
+  def download
+    api_url = "http://api.openstreetmap.org/api/0.6"
+    file = File.read(options[:file])
+    file.each_line do |l|
+      id = l.chomp
+      next if File.exist?("#{options[:path]}/#{id}.xml")
+      `curl -s --location --globoff '#{api_url}/changeset/#{id}/download' > #{options[:path]}/#{id}.xml`
+      puts "Downloaded #{id}.xml"
+    end
+  end
+
   no_tasks do
     def database
       settings = YAML.load(File.read(File.expand_path("~/.postgres")))[options[:connection]]
@@ -83,13 +97,18 @@ class OsmEditHistory < Thor
     # Parse changeset files in a directory (XML)
     def parse_changesets(xml)
       current_record = nil
+      current_type = nil
 
       Nokogiri::XML::Reader(xml).each_with_index do |node, index|
+        if ['create', 'modify'].include? node.name
+          current_type = node.name
+        end
         if ['node', 'way', 'relation'].include? node.name
           if node.node_type == Nokogiri::XML::Reader::TYPE_ELEMENT
             current_record = node.attributes.merge('tags' => {})
             current_record['osm_id'] = current_record['id'].to_i
             current_record['type'] = node.name
+            current_record['edit_type'] = current_type
             current_record['version'] = current_record['version'].to_i
             current_record['changeset_id'] = current_record['changeset'].to_i
             current_record['uid'] = current_record['uid'].to_i
@@ -109,11 +128,12 @@ class OsmEditHistory < Thor
     # Reformat tags as k=v pairs
     def parse_tags(changeset)
       tags = []
-      changeset["tags"].each do |k,v|
+      changeset['tags'].each do |k,v|
         tag = {}
-        tag["changeset_id"] = changeset['changeset_id']
-        tag["key"] = k
-        tag["value"] = v
+        tag['changeset_id'] = changeset['changeset_id']
+        tag['key'] = k
+        tag['value'] = v
+        tag['edit_type'] = changeset["edit_type"]
         tags << tag
       end
       return tags
@@ -132,6 +152,7 @@ class OsmEditHistory < Thor
           id serial NOT NULL,
           osm_id bigint NOT NULL,
           type character varying(50),
+          edit_type character varying(50),
           version integer NOT NULL,
           changeset_id integer NOT NULL,
           username character varying(255),
@@ -149,6 +170,7 @@ class OsmEditHistory < Thor
           changeset_id integer NOT NULL,
           key character varying(255),
           value character varying(255),
+          edit_type character varying(50),
           CONSTRAINT tags_pkey PRIMARY KEY (id)
         )
         WITH (
