@@ -15,7 +15,7 @@ This was built primarily for analyzing editing history from [Pushpin](http://pus
 
 This tool relies on having a connection settings file pre-populated with the Postgres connection parameters, so copy over the sample to your home directory and modify the settings accordingly. You can add new connections by name (just copy the localhost example), then pass the connection name as an argument to run your import against a different database.
 
-    $ cp utils/postgres.sample.yml ~/.postgres
+    $ cp config/postgres.sample.yml ~/.postgres
 
 Install the dependencies:
 
